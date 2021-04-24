@@ -14,18 +14,18 @@ exports.getUsers = async (req, res) => {
 
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.cardId);
+    const user = await User.findById(req.params.userId);
     if (!user) {
       res.status(404).json({ message: "карточка или пользователь не найден." });
     }
     res.send(user);
   } catch (e) {
-    if (e.name === 'CastError') {
+    if (e.name === "CastError") {
       res.status(400).send({
-        message: 'Переданы некорректные данные',
+        message: "Переданы некорректные данные",
       });
     } else {
-      res.status(500).send({ message: 'ошибка по-умолчанию' });
+      res.status(500).send({ message: "ошибка по-умолчанию" });
     }
   }
 };
@@ -33,57 +33,59 @@ exports.getUserById = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { name, about, avatar } = req.body;
-    if (!req.body) {
-      res.status(400).json({
-        message:
-          "переданы некорректные данные в методы создания карточки, пользователя, обновления аватара пользователя или профиля",
-      });
-    }
     const post = await User.create({ name, about, avatar });
     res.json(post);
   } catch (e) {
-    res.status(500).json({ message: "ошибка по-умолчанию." });
+    if (e.name === "ValidationError") {
+      res.status(400).send({
+        message: "Переданы некорректные данные",
+      });
+    } else {
+      res.status(500).send({ message: "ошибка по-умолчанию" });
+    }
   }
 };
 
-exports.updateProfile = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { name, about } = req.body;
-    if (!userId) {
-      res.status(400).json({
-        message:
-          "переданы некорректные данные в методы создания карточки, пользователя, обновления аватара пользователя или профиля",
-      });
-    }
-    const updatedPost = await User.findByIdAndUpdate(
-      userId,
-      { name, about },
-      { new: true },
-    );
-    return res.json(updatedPost);
-  } catch (e) {
-    return res.status(500).json({ message: "ошибка по-умолчанию." });
-  }
+exports.updateProfile = (req, res) => {
+  const userId = req.user._id;
+  const { name, about } = req.body;
+  User.findByIdAndUpdate(userId, { name, about }, { new: true })
+    .then((user) => {
+      if (!user) {
+        return res
+          .status(404)
+          .send({ message: "Карточка или пользователь не найден." });
+      }
+      return res.send("Данные профиля обновлены");
+    })
+    .catch((err) => {
+      if (err.name === "ValidationError" || err.name === "CastError") {
+        return res.status(400).send({
+          message: "Переданы неправильные данные",
+        });
+      }
+      return res.status(500).send({ message: "Произошла ошибка" });
+    });
 };
 
-exports.updateAvatar = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { avatar } = req.body;
-    if (!userId) {
-      res.status(400).json({
-        message:
-          "переданы некорректные данные в методы создания карточки, пользователя, обновления аватара пользователя или профиля",
-      });
-    }
-    const updatedPost = await User.findByIdAndUpdate(
-      userId,
-      { avatar },
-      { new: true },
-    );
-    return res.json(updatedPost);
-  } catch (e) {
-    return res.status(500).json({ message: "ошибка по-умолчанию." });
-  }
+exports.updateAvatar = (req, res) => {
+  const userId = req.user._id;
+  const { avatar } = req.body;
+  User.findByIdAndUpdate(userId, { avatar }, { new: true })
+    .then((user) => {
+      if (!user) {
+        return res
+          .status(404)
+          .send({ message: "Карточка или пользователь не найден." });
+      }
+      return res.send("Аватар обновлен");
+    })
+    .catch((err) => {
+      if (err.name === "ValidationError" || err.name === "CastError") {
+        return res.status(400).send({
+          message: "Переданы неправильные данные",
+        });
+      }
+      return res.status(500).send({ message: "Произошла ошибка" });
+    });
 };
