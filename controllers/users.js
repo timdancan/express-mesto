@@ -16,7 +16,7 @@ exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
-      res.status(404).json({ message: "карточка или пользователь не найден." });
+      return res.status(404).json({ message: "карточка или пользователь не найден." });
     }
     res.send(user);
   } catch (e) {
@@ -49,14 +49,14 @@ exports.createUser = async (req, res) => {
 exports.updateProfile = (req, res) => {
   const userId = req.user._id;
   const { name, about } = req.body;
-  User.findByIdAndUpdate(userId, { name, about }, { new: true })
+  User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
     .then((user) => {
       if (!user) {
         return res
           .status(404)
           .send({ message: "Карточка или пользователь не найден." });
       }
-      return res.send("Данные профиля обновлены");
+      return res.json(user);
     })
     .catch((err) => {
       if (err.name === "ValidationError" || err.name === "CastError") {
@@ -71,14 +71,14 @@ exports.updateProfile = (req, res) => {
 exports.updateAvatar = (req, res) => {
   const userId = req.user._id;
   const { avatar } = req.body;
-  User.findByIdAndUpdate(userId, { avatar }, { new: true })
+  User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
     .then((user) => {
       if (!user) {
         return res
           .status(404)
           .send({ message: "Карточка или пользователь не найден." });
       }
-      return res.send("Аватар обновлен");
+      return res.json(user);
     })
     .catch((err) => {
       if (err.name === "ValidationError" || err.name === "CastError") {

@@ -64,7 +64,7 @@ exports.likeCard = (req, res) => {
           .status(404)
           .send({ message: "Карточка с указанным _id не найдена" });
       }
-      return res.send("Лайк поставлен");
+      return res.json(data);
     })
     .catch((e) => {
       if (e.name === "CastError") {
@@ -90,7 +90,7 @@ exports.dislikeCard = (req, res) => {
           .status(404)
           .send({ message: "Карточка с указанным _id не найдена" });
       }
-      return res.send("Лайк удален");
+      return res.json(data);
     })
     .catch((e) => {
       if (e.name === "CastError") {
