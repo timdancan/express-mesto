@@ -1,7 +1,10 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const cookieParser = require("cookie-parser");
 const usersRouter = require("./routes/users.js");
 const cardsRouter = require("./routes/cards.js");
+const auth = require("./middlewares/auth.js");
+const { createUser, authAdmin } = require("./controllers/users.js");
 
 const {
   PORT = 3000,
@@ -10,12 +13,7 @@ const {
 
 const app = express();
 app.use(express.json());
-app.use((req, res, next) => {
-  req.user = {
-    _id: "607f0a3af82d5a12b4219cb6", // вставьте сюда _id созданного в предыдущем пункте пользователя
-  };
-  next();
-});
+app.use(cookieParser());
 
 async function main() {
   await mongoose.connect(MONGO_URL, {
@@ -31,8 +29,10 @@ async function main() {
   });
 }
 
-app.use("/users", usersRouter);
-app.use("/cards", cardsRouter);
+app.post('/signin', authAdmin);
+app.post('/signup', createUser);
+app.use("/users", auth, usersRouter);
+app.use("/cards", auth, cardsRouter);
 app.use((req, res) => {
   res.status(404).send({ message: `Ресурс по адресу ${req.path} не найден` });
 });
