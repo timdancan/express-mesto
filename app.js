@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
+const { celebrate, Joi } = require('celebrate');
 const usersRouter = require("./routes/users.js");
 const cardsRouter = require("./routes/cards.js");
 const auth = require("./middlewares/auth.js");
@@ -29,8 +30,21 @@ async function main() {
   });
 }
 
-app.post('/signin', authAdmin);
-app.post('/signup', createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required(),
+    password: Joi.string().required().min(8),
+  }),
+}), authAdmin);
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string(),
+    email: Joi.string().required(),
+    password: Joi.string().required().min(8),
+  }),
+}), createUser);
 app.use("/users", auth, usersRouter);
 app.use("/cards", auth, cardsRouter);
 app.use((req, res) => {

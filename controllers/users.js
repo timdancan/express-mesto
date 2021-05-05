@@ -1,65 +1,64 @@
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
+const NotFoundError = require('../errors/not-found-err.js');
+const AuthError = require('../errors/auth-error.js');
+const BadRequestError = require('../errors/bad-request-error.js');
 const User = require("../models/user.js");
 
 const JWT_SECRET_KEY = "secret_key";
 const saltRounds = 10;
 
-exports.getUsers = async (req, res) => {
+exports.getUsers = async (req, res, next) => {
   try {
     const users = await User.find({});
     if (!users) {
-      res.status(404).json({ message: "карточка или пользователь не найден." });
+      throw new NotFoundError('карточка или пользователь не найден');
     }
     res.send(users);
   } catch (e) {
-    res.status(500).json({ message: "ошибка по-умолчанию." });
+    next(e);
   }
 };
 
-exports.getUserById = async (req, res) => {
+exports.getUserById = async (req, res, next) => {
   try {
     const user = await User.findById(req.params.userId);
     if (!user) {
-      res.status(404).json({ message: "карточка или пользователь не найден." });
+      throw new NotFoundError('карточка или пользователь не найден');
     }
     res.send(user);
   } catch (e) {
     if (e.name === "CastError") {
-      res.status(400).send({
-        message: "Переданы некорректные данные",
-      });
+      throw new BadRequestError('Неправильный логин или пароль');
     } else {
-      res.status(500).send({ message: "ошибка по-умолчанию" });
+      next(e);
     }
   }
 };
 
-exports.getUserInfo = async (req, res) => {
+exports.getUserInfo = async (req, res, next) => {
   try {
     const userId = await User.findById(req.user._id);
     if (!userId) {
-      res.status(404).json({ message: "карточка или пользователь не найден." });
+      throw new NotFoundError('карточка или пользователь не найден');
     }
     res.send(userId);
   } catch (e) {
     if (e.name === "CastError") {
-      res.status(400).send({
-        message: "Переданы некорректные данные",
-      });
+      throw new BadRequestError('Переданы некорректные данные');
     } else {
-      res.status(500).send({ message: "ошибка по-умолчанию" });
+      next(e);
     }
   }
 };
 
-exports.createUser = async (req, res) => {
+exports.createUser = async (req, res, next) => {
   try {
     const {
       name, about, avatar, email, password,
     } = req.body;
     if (!email || !password) {
-      res.status(400).send({ message: "переданы некорректные данные в метод создания карточки, пользователя, обновления аватара пользователя и профиля;" });
+      throw new BadRequestError('переданы некорректные данные в метод создания карточки, пользователя, обновления аватара пользователя и профиля;');
     }
     const hash = await bcrypt.hash(password, saltRounds);
     const post = await User.create({
@@ -68,63 +67,53 @@ exports.createUser = async (req, res) => {
     res.json(post);
   } catch (e) {
     if (e.name === "ValidationError") {
-      res.status(400).send({
-        message: "Переданы некорректные данные",
-      });
+      throw new BadRequestError('Переданы некорректные данные');
     } else {
-      res.status(500).send({ message: "ошибка по-умолчанию" });
+      next(e);
     }
   }
 };
 
-exports.updateProfile = (req, res) => {
+exports.updateProfile = (req, res, next) => {
   const userId = req.user._id;
   const { name, about } = req.body;
   User.findByIdAndUpdate(userId, { name, about }, { new: true, runValidators: true })
     .then((user) => {
       if (!user) {
-        return res
-          .status(404)
-          .send({ message: "Карточка или пользователь не найден." });
+        throw new NotFoundError('карточка или пользователь не найден');
       }
       return res.json(user);
     })
     .catch((err) => {
       if (err.name === "ValidationError" || err.name === "CastError") {
-        return res.status(400).send({
-          message: "Переданы неправильные данные",
-        });
+        throw new BadRequestError('Переданы некорректные данные');
       }
-      return res.status(500).send({ message: "Произошла ошибка" });
+      next(err);
     });
 };
 
-exports.updateAvatar = (req, res) => {
+exports.updateAvatar = (req, res, next) => {
   const userId = req.user._id;
   const { avatar } = req.body;
   User.findByIdAndUpdate(userId, { avatar }, { new: true, runValidators: true })
     .then((user) => {
       if (!user) {
-        return res
-          .status(404)
-          .send({ message: "Карточка или пользователь не найден." });
+        throw new NotFoundError('карточка или пользователь не найден');
       }
       return res.json(user);
     })
     .catch((err) => {
       if (err.name === "ValidationError" || err.name === "CastError") {
-        return res.status(400).send({
-          message: "Переданы неправильные данные",
-        });
+        throw new BadRequestError('Переданы некорректные данные');
       }
-      return res.status(500).send({ message: "Произошла ошибка" });
+      next(err);
     });
 };
 
-exports.authAdmin = (req, res) => {
+exports.authAdmin = (req, res, next) => {
   const { email, password } = req.body;
   if (!email || !password) {
-    res.status(400).send({ message: "Не передан email или пароль" });
+    throw new BadRequestError('Не передан email или пароль');
   }
   User.findOne({ email }).select('+password').then((admin) => {
     if (!admin) {
@@ -144,8 +133,9 @@ exports.authAdmin = (req, res) => {
           sameSite: true,
         }).send({ _id: admin._id });
       })
-      .catch((e) => {
-        res.status(401).send({ message: e.message });
-      });
+      .catch(() => {
+        throw new AuthError('Неправильный логин или пароль');
+      })
+      .catch(next);
   });
 };
