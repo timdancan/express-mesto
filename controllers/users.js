@@ -4,6 +4,7 @@ const NotFoundError = require('../errors/not-found-err.js');
 const AuthError = require('../errors/auth-error.js');
 const BadRequestError = require('../errors/bad-request-error.js');
 const User = require("../models/user.js");
+const EmailError = require('../errors/email-error.js');
 
 const JWT_SECRET_KEY = "secret_key";
 const saltRounds = 10;
@@ -64,10 +65,18 @@ exports.createUser = async (req, res, next) => {
     const post = await User.create({
       name, about, avatar, email, password: hash,
     });
-    res.json(post);
+    const userData = {
+      email: post.email,
+      name: post.name,
+      about: post.about,
+      avatar: post.avatar,
+    };
+    res.json(userData);
   } catch (e) {
     if (e.name === "ValidationError") {
       throw new BadRequestError('Переданы некорректные данные');
+    } else if (e.name === 'MongoError') {
+      throw new EmailError('Пользователь с таким email уже зарегистрирован');
     } else {
       next(e);
     }

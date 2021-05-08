@@ -2,10 +2,13 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const { celebrate, Joi } = require('celebrate');
+const { errors } = require('celebrate');
 const usersRouter = require("./routes/users.js");
 const cardsRouter = require("./routes/cards.js");
 const auth = require("./middlewares/auth.js");
 const { createUser, authAdmin } = require("./controllers/users.js");
+const NotFoundError = require("./errors/not-found-err.js");
+const errorHandler = require("./middlewares/error-handler.js");
 
 const {
   PORT = 3000,
@@ -32,7 +35,7 @@ async function main() {
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required(),
+    email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
   }),
 }), authAdmin);
@@ -40,15 +43,16 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string(),
-    email: Joi.string().required(),
+    email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
   }),
 }), createUser);
 app.use("/users", auth, usersRouter);
 app.use("/cards", auth, cardsRouter);
-app.use((req, res) => {
-  res.status(404).send({ message: `Ресурс по адресу ${req.path} не найден` });
+app.use((req) => {
+  throw new NotFoundError(`Ресурс по адресу ${req.path} не найден`);
 });
+app.use(errors());
+app.use(errorHandler);
 
 main();

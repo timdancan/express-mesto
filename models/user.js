@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const isEmail = require('validator/lib/isEmail');
+const isURL = require('validator/lib/isURL');
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -17,11 +18,14 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: String,
     validate: {
-      validator(v) {
-        // eslint-disable-next-line no-useless-escape
-        return /^https?:\/\/(www\.)?([a-zA-Z0-9\-])+\.([a-zA-Z])+\/?([a-zA-Z0-9\-\._~:\/\?#\[\]@!\$&’\(\)\*\+,;=]+)/.test(v);
-      },
-      message: (props) => `Ошибка в ссылке ${props.value}`,
+      // validator(v) {
+      //   // eslint-disable-next-line no-useless-escape
+      //   return /^https?:\/\/(www\.)?([a-zA-Z0-9\-])+\.([a-zA-Z])+\/?([a-zA-Z0-9\-\._~:\/\?#\[\]@!\$&’\(\)\*\+,;=]+)/.test(v);
+      // },
+      validator: (v) => isURL(v),
+      message: 'Неправильный формат ссылки',
+      require_protocol: true,
+      // message: (props) => `Ошибка в ссылке ${props.value}`,
     },
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
   },
@@ -37,7 +41,6 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: true,
-    minlength: 8,
     select: false,
   },
 });

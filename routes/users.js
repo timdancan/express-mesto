@@ -33,10 +33,6 @@ usersRoutes.patch("/me", celebrate({
   }),
 }), updateProfile);
 
-usersRoutes.patch("/me/avatar", celebrate({
-  body: Joi.object().keys({
-    link: Joi.string(),
-  }),
-}), updateAvatar);
+usersRoutes.patch("/me/avatar", updateAvatar);
 
 module.exports = usersRoutes;

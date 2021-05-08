@@ -1,11 +1,12 @@
 const jwt = require("jsonwebtoken");
+const AuthError = require("../errors/auth-error");
 
 const JWT_SECRET_KEY = "secret_key";
 
 module.exports = (req, res, next) => {
   const token = req.cookies.parrotToken;
   if (!token) {
-    return res.status("401").send({ message: "необходма авторизация" });
+    throw new AuthError("необходма авторизация");
   }
 
   let payload;
@@ -13,7 +14,7 @@ module.exports = (req, res, next) => {
   try {
     payload = jwt.verify(token, JWT_SECRET_KEY);
   } catch (e) {
-    return res.status(403).send({ message: "Нет доступа" });
+    throw new AuthError("Нет доступа");
   }
 
   req.user = payload;
