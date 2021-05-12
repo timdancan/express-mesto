@@ -1,19 +1,21 @@
 const mongoose = require("mongoose");
-const isEmail = require('validator/lib/isEmail');
-const isURL = require('validator/lib/isURL');
+const bcrypt = require("bcrypt");
+const isEmail = require("validator/lib/isEmail");
+const isURL = require("validator/lib/isURL");
+const EmailError = require("../errors/email-error");
 
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
     minlength: 2,
     maxlength: 30,
-    default: 'Жак-Ив Кусто',
+    default: "Жак-Ив Кусто",
   },
   about: {
     type: String,
     minlength: 2,
     maxlength: 30,
-    default: 'Исследователь',
+    default: "Исследователь",
   },
   avatar: {
     type: String,
@@ -23,20 +25,20 @@ const userSchema = new mongoose.Schema({
       //   return /^https?:\/\/(www\.)?([a-zA-Z0-9\-])+\.([a-zA-Z])+\/?([a-zA-Z0-9\-\._~:\/\?#\[\]@!\$&’\(\)\*\+,;=]+)/.test(v);
       // },
       validator: (v) => isURL(v),
-      message: 'Неправильный формат ссылки',
-      require_protocol: true,
+      message: "Неправильный формат ссылки",
       // message: (props) => `Ошибка в ссылке ${props.value}`,
     },
-    default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
+    default:
+      "https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png",
   },
   email: {
     type: String,
     required: true,
+    unique: true,
     validate: {
       validator: (v) => isEmail(v),
-      message: 'Неправильный формат почты',
+      message: "Неправильный формат почты",
     },
-    unique: true,
   },
   password: {
     type: String,
@@ -45,4 +47,25 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("User", userSchema);
+// eslint-disable-next-line func-names
+userSchema.statics.findUserByCredentials = function (email, password) {
+  return this.findOne({ email })
+    .select("+password")
+    .then((user) => {
+      if (!user) {
+        throw new EmailError("Неправильные почта или пароль");
+      }
+      return bcrypt.compare(password, user.password).then((matched) => {
+        if (!matched) {
+          throw new EmailError("Неправильные почта или пароль");
+        }
+        return user;
+      });
+    });
+};
+
+const User = mongoose.model("User", userSchema);
+
+User.createIndexes();
+
+module.exports = User;

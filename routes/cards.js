@@ -1,6 +1,7 @@
 const express = require("express");
 const { celebrate, Joi } = require('celebrate');
 const { ObjectId } = require('mongoose').Types;
+const validator = require('validator');
 
 const cardsRoutes = express.Router();
 const {
@@ -16,13 +17,18 @@ cardsRoutes.get("/", getCards);
 cardsRoutes.post("/", celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
-    link: Joi.required(),
+    link: Joi.required().custom((value, helpers) => {
+      if (validator.isURL(value, { require_protocol: true })) {
+        return value;
+      }
+      return helpers.message('Поле должно быть валидным url-адресом');
+    }),
   }),
 }), createCard);
 
 cardsRoutes.delete("/:cardId", celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().required().custom((value, helpers) => {
+    cardId: Joi.string().required().custom((value, helpers) => {
       if (ObjectId.isValid(value)) {
         return value;
       }
@@ -33,7 +39,7 @@ cardsRoutes.delete("/:cardId", celebrate({
 
 cardsRoutes.put("/:cardId/likes", celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().required().custom((value, helpers) => {
+    cardId: Joi.string().required().custom((value, helpers) => {
       if (ObjectId.isValid(value)) {
         return value;
       }
@@ -44,7 +50,7 @@ cardsRoutes.put("/:cardId/likes", celebrate({
 
 cardsRoutes.delete("/:cardId/likes", celebrate({
   params: Joi.object().keys({
-    userId: Joi.string().required().custom((value, helpers) => {
+    cardId: Joi.string().required().custom((value, helpers) => {
       if (ObjectId.isValid(value)) {
         return value;
       }

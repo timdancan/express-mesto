@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const { celebrate, Joi } = require('celebrate');
+const validator = require('validator');
 const { errors } = require('celebrate');
 const usersRouter = require("./routes/users.js");
 const cardsRouter = require("./routes/cards.js");
@@ -43,6 +44,12 @@ app.post('/signup', celebrate({
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
+    avatar: Joi.string().custom((value, helpers) => {
+      if (validator.isURL(value, { require_protocol: true })) {
+        return value;
+      }
+      return helpers.message('Поле должно быть валидным url-адресом');
+    }),
     email: Joi.string().required().email(),
     password: Joi.string().required().min(8),
   }),

@@ -54,33 +54,32 @@ exports.getUserInfo = async (req, res, next) => {
 };
 
 exports.createUser = async (req, res, next) => {
-  try {
-    const {
-      name, about, avatar, email, password,
-    } = req.body;
-    if (!email || !password) {
-      throw new BadRequestError('переданы некорректные данные в метод создания карточки, пользователя, обновления аватара пользователя и профиля;');
-    }
-    const hash = await bcrypt.hash(password, saltRounds);
-    const post = await User.create({
+  const {
+    name, about, avatar, email,
+  } = req.body;
+  bcrypt.hash(req.body.password, saltRounds)
+    .then((hash) => User.create({
       name, about, avatar, email, password: hash,
-    });
-    const userData = {
-      email: post.email,
-      name: post.name,
-      about: post.about,
-      avatar: post.avatar,
-    };
-    res.json(userData);
-  } catch (e) {
-    if (e.name === "ValidationError") {
-      throw new BadRequestError('Переданы некорректные данные');
-    } else if (e.name === 'MongoError') {
-      throw new EmailError('Пользователь с таким email уже зарегистрирован');
-    } else {
-      next(e);
-    }
-  }
+    }))
+    .then((user) => {
+      const userData = {
+        email: user.email,
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+      };
+      res.send(userData);
+    })
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        throw new BadRequestError('Переданы неверные данные');
+      } else if (err.name === 'MongoError') {
+        throw new EmailError('Пользователь с таким email уже зарегистрирован');
+      } else {
+        next(err);
+      }
+    })
+    .catch(next);
 };
 
 exports.updateProfile = (req, res, next) => {
@@ -124,27 +123,18 @@ exports.authAdmin = (req, res, next) => {
   if (!email || !password) {
     throw new BadRequestError('Не передан email или пароль');
   }
-  User.findOne({ email }).select('+password').then((admin) => {
-    if (!admin) {
-      Promise.reject(new Error("Неправильная почта или пароль"));
-    }
-    bcrypt
-      .compare(password, admin.password)
-      .then((matched) => {
-        if (!matched) {
-          Promise.reject(new Error("Неправильная почта или пароль"));
-        }
-        const token = jwt.sign({ _id: admin._id }, JWT_SECRET_KEY, {
-          expiresIn: "7d",
-        });
-        res.cookie('parrotToken', token, {
-          httpOnly: true,
-          sameSite: true,
-        }).send({ _id: admin._id });
-      })
-      .catch(() => {
-        throw new AuthError('Неправильный логин или пароль');
-      })
-      .catch(next);
-  });
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET_KEY, {
+        expiresIn: "7d",
+      });
+      res.cookie('parrotToken', token, {
+        httpOnly: true,
+        sameSite: true,
+      }).send({ _id: user._id });
+    })
+    .catch(() => {
+      throw new AuthError('Авторизация не пройдена');
+    })
+    .catch(next);
 };
