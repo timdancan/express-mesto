@@ -38,7 +38,7 @@ exports.deleteCard = (req, res, next) => {
         throw new NotFoundError("карточка или пользователь не найден");
       }
       if (card.owner.toString() !== owner) {
-        throw new BadRequestError("Невалидный id пользователя");
+        throw new BadRequestError("Нет прав на удаление карточки");
       }
       Card.findByIdAndRemove(cardId).then(() => {
         res.send(card);

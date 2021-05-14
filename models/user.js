@@ -20,10 +20,6 @@ const userSchema = new mongoose.Schema({
   avatar: {
     type: String,
     validate: {
-      // validator(v) {
-      //   // eslint-disable-next-line no-useless-escape
-      //   return /^https?:\/\/(www\.)?([a-zA-Z0-9\-])+\.([a-zA-Z])+\/?([a-zA-Z0-9\-\._~:\/\?#\[\]@!\$&’\(\)\*\+,;=]+)/.test(v);
-      // },
       validator: (v) => isURL(v),
       message: "Неправильный формат ссылки",
       // message: (props) => `Ошибка в ссылке ${props.value}`,
